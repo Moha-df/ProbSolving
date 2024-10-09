@@ -150,10 +150,10 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
         int max_attempts = 50;
         int attempts = 0;
 
-        while(y_wall == 0 || !checkYWall() && attempts < max_attempts){
+        do{
             y_wall = generateYwallCoord(y_end, y_start);
             attempts++;
-        }
+        }while (!checkYWall() && attempts < max_attempts);
 
         if (attempts >= max_attempts) {
             return;
@@ -173,10 +173,10 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
         int max_attempts = 50;
         int attempts = 0;
 
-        while(x_wall == 0 || !checkXWall() && attempts < max_attempts){
+        do {
             x_wall = generateXwallCoord(x_end, x_start);
             attempts++;
-        }
+        } while (!checkXWall() && attempts < max_attempts);
 
         if (attempts >= max_attempts) {
             return;
