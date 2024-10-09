@@ -6,6 +6,8 @@
 #define SPACE 0
 #define ENTRY 2
 #define EXIT 3
+#define MIN_WIDTH 3
+#define MIN_HEIGHT 4
 
 typedef struct {
     int x, y;
@@ -72,61 +74,122 @@ void free_maze(int **maze, int height) {
 }
 
 void place_door(int **maze, int x_start, int x_end, int y_start, int y_end, int horizontal) {
-    if (x_start >= x_end - 1 || y_start >= y_end - 1) {
-        return;
-    }
-    
-    x_start++;
-    x_end--;
-    y_start++;
-    y_end--;
-
-
     if (horizontal) {
-        // Assurer que la porte n'est pas placée sur le mur du bas
-        int door_position = x_start  + rand() % (x_end - x_start); // Position de la porte à l'intérieur
-        maze[y_end][door_position] = SPACE; // Placer une porte dans le mur horizontal (mur supérieur)
+        // Calculer la position de la porte au milieu du mur
+        int door_position = x_start + (x_end - x_start) / 2;
+        maze[y_end][door_position] = SPACE;  // Place la porte en tant qu'espace
     } else {
-        // Assurer que la porte n'est pas placée sur le mur de droite
-        int door_position = y_start + rand() % (y_end - y_start); // Position de la porte à l'intérieur
-        maze[door_position][x_end] = SPACE; // Placer une porte dans le mur vertical (mur gauche)
+        // Calculer la position de la porte au milieu du mur
+        int door_position = y_start + (y_end - y_start) / 2;
+        maze[door_position][x_end] = SPACE;  // Place la porte en tant qu'espace
     }
 }
 
+int generateYwallCoord(int y_end, int y_start){
+    int y_wall;
+    if((y_end - y_start - 4) == 0){
+            y_wall = y_start + 2; 
+    }else{
+            y_wall = y_start + 2 + rand() % (y_end - y_start - 4); 
+    }
+    return y_wall;
+}
+int generateXwallCoord(int x_end, int x_start){
+    int x_wall;
+    if((x_end - x_start - 4) == 0)
+    {
+        x_wall = x_start + 2; 
+    }else{
+        x_wall = x_start + 2 + rand() % (x_end - x_start - 4); 
+    }
+    return x_wall;
+}
 
-// Diviser l'espace pour générer le labyrinthe
+int checkYWall(){
+    //
+    return 1;
+}
+
+int checkXWall(){
+    //
+    return 1;
+}
+
+
 void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
-    
-    if (x_end - x_start < 2 || y_end - y_start < 2) return;
 
-    int horizontal = (x_end - x_start) < (y_end - y_start); // Diviser dans la direction la plus grande
+
+    int width = x_end - x_start - 1;
+    int height = y_end - y_start - 1;
+    int state;
+
+    if (width == 3 && height > 3) {
+        state = 1; // Ca passe
+    } else if (width > 3 && height == 3) {
+        state = 1; // Ca passe
+    } else if (width <= 3 && height <= 3) {
+        state = 0; // Ca - tastrophique
+    } else {
+        state = 1; // Cas normalement ca passe inchAllah
+    }
+
+    switch (state) {
+        case 0:
+            return;
+        case 1:
+            break;
+        default:
+            return;
+    }
+
+    int horizontal = (x_end - x_start) < (y_end - y_start); 
 
     if (horizontal) {
-        // Placer un mur horizontal
-        int y_wall = y_start + 1 + rand() % (y_end - y_start - 1); // Position du mur horizontal
-        for (int x = x_start; x < x_end; x++) {
-            maze[y_wall][x] = WALL; // Construire le mur horizontal
+
+        int y_wall = 0;
+        int max_attempts = 50;
+        int attempts = 0;
+
+        while(y_wall == 0 || !checkYWall() && attempts < max_attempts){
+            y_wall = generateYwallCoord(y_end, y_start);
+            attempts++;
         }
 
-        // Placer une porte dans ce mur
+        if (attempts >= max_attempts) {
+            return;
+        }
+
+        for (int x = x_start; x < x_end; x++) {
+            maze[y_wall][x] = WALL; 
+        }
+
         place_door(maze, x_start, x_end, y_start, y_wall, 1);
 
-        // Diviser récursivement les deux sous-espaces
-        divide(maze, x_start, x_end, y_start, y_wall); // Espace au-dessus
-        divide(maze, x_start, x_end, y_wall + 1, y_end); // Espace en dessous
+        divide(maze, x_start, x_end, y_start, y_wall); 
+        divide(maze, x_start, x_end, y_wall, y_end);
+
     } else {
-        // Placer un mur vertical
-        int x_wall = x_start + 1 + rand() % (x_end - x_start - 1); // Position du mur vertical
-        for (int y = y_start; y < y_end; y++) {
-            maze[y][x_wall] = WALL; // Construire le mur vertical
+        int x_wall = 0;
+        int max_attempts = 50;
+        int attempts = 0;
+
+        while(x_wall == 0 || !checkXWall() && attempts < max_attempts){
+            x_wall = generateXwallCoord(x_end, x_start);
+            attempts++;
         }
 
-        // Placer une porte dans ce mur
+        if (attempts >= max_attempts) {
+            return;
+        }
+
+        for (int y = y_start; y < y_end; y++) {
+            maze[y][x_wall] = WALL;
+        }
+
         place_door(maze, x_start, x_wall, y_start, y_end, 0);
 
-        // Diviser récursivement les deux sous-espaces
-        divide(maze, x_start, x_wall, y_start, y_end); // Espace à gauche
-        divide(maze, x_wall + 1, x_end, y_start, y_end); // Espace à droite
+        divide(maze, x_start, x_wall, y_start, y_end);
+        divide(maze, x_wall, x_end, y_start, y_end);
     }
 
 }
@@ -140,6 +203,7 @@ int main() {
     
     int **maze = generate_maze(width, height);
 
+
     divide(maze, 0, width, 0, height);
 
     generate_entry();
@@ -148,7 +212,17 @@ int main() {
 
     print_maze(maze, width, height);
 
-    free_maze(maze, height);;
+    free_maze(maze, height);
 
     return 0;
 }
+
+/*
+#### // x0 = 0 ; xmax = 3
+#  #
+#  #
+#  #
+####
+
+
+//y0 = 0; ymax = 4*/

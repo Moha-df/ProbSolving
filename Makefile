@@ -27,3 +27,9 @@ clean:
 
 # Exécuter et nettoyer
 exec: run clean
+
+# Lancer le programme avec Valgrind
+val: $(TARGET)
+	valgrind --leak-check=full --track-origins=yes ./$(TARGET)
+
+.PHONY: all run clean exec val
