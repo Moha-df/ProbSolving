@@ -8,10 +8,108 @@
 #define EXIT 3
 #define DOOR 4
 
-
 typedef struct {
     int x, y;
 } Point;
+
+
+typedef struct Node {
+    Point point;
+    struct Node **neighbors;
+    int neighbor_count;
+} Node;
+
+Node* create_node(int x, int y) {
+    Node* node = (Node*)malloc(sizeof(Node));
+    node->point.x = x;
+    node->point.y = y;
+    node->neighbors = NULL;
+    node->neighbor_count = 0;
+    return node;
+}
+
+void print_graph(Node **graph) {
+    for (int i = 0; graph[i] != NULL; i++) {
+        printf("Node at (%d, %d): ", graph[i]->point.x, graph[i]->point.y);
+        for (int j = 0; j < graph[i]->neighbor_count; j++) {
+            printf("(%d, %d) ", graph[i]->neighbors[j]->point.x, graph[i]->neighbors[j]->point.y);
+        }
+        printf("\n");
+    }
+}
+
+
+Node** generate_entry_and_graph(int **maze, int width, int height) {
+    //generate entry, ouais psq on s'en blc jfais tt au mm endroit ggggg
+    int entry_x, entry_y;
+    int found = 0;
+
+    while (!found) {
+        entry_x = 1 + rand() % (width - 1); 
+        entry_y = 1 + rand() % (height - 1);
+        if (maze[entry_y][entry_x] == SPACE) {
+            maze[entry_y][entry_x] = ENTRY;
+            found = 1;
+        }
+    }
+
+    //
+
+    Node **graph = (Node**)malloc(height * width * sizeof(Node*));
+    int node_count = 0;
+
+    for (int y = 1; y < height - 1; y++) {
+        for (int x = 1; x < width - 1; x++) {
+            if (maze[y][x] == SPACE || maze[y][x] == ENTRY || maze[y][x] == DOOR) {
+                Node* node = create_node(x, y);
+                //ajout de tout les voisins du poto
+                if (maze[y-1][x] == SPACE || maze[y-1][x] == ENTRY || maze[y-1][x] == DOOR) {
+                    node->neighbor_count++;
+                    node->neighbors = realloc(node->neighbors, node->neighbor_count * sizeof(Node*));
+                    node->neighbors[node->neighbor_count - 1] = create_node(x, y-1);
+                }
+                if (maze[y+1][x] == SPACE || maze[y+1][x] == ENTRY || maze[y+1][x] == DOOR) {
+                    node->neighbor_count++;
+                    node->neighbors = realloc(node->neighbors, node->neighbor_count * sizeof(Node*));
+                    node->neighbors[node->neighbor_count - 1] = create_node(x, y+1);
+                }
+                if (maze[y][x-1] == SPACE || maze[y][x-1] == ENTRY || maze[y][x-1] == DOOR) {
+                    node->neighbor_count++;
+                    node->neighbors = realloc(node->neighbors, node->neighbor_count * sizeof(Node*));
+                    node->neighbors[node->neighbor_count - 1] = create_node(x-1, y);
+                }
+                if (maze[y][x+1] == SPACE || maze[y][x+1] == ENTRY || maze[y][x+1] == DOOR) {
+                    node->neighbor_count++;
+                    node->neighbors = realloc(node->neighbors, node->neighbor_count * sizeof(Node*));
+                    node->neighbors[node->neighbor_count - 1] = create_node(x+1, y);
+                }
+
+                graph[node_count++] = node;
+            }
+        }
+    }
+
+    // ca ca sert a rien btw c zehma de loptimisation
+    // psq on a allouer trop psq on allou pr les mur aussi alors quon les enregistre pas
+    graph = realloc(graph, node_count * sizeof(Node*));
+
+    // on marque la fin
+    graph[node_count] = NULL;
+
+    return graph;
+}
+
+void free_graph(Node **graph) {
+    for (int i = 0; graph[i] != NULL; i++) {
+        for (int j = 0; j < graph[i]->neighbor_count; j++) {
+            free(graph[i]->neighbors[j]);
+        }
+        free(graph[i]->neighbors);
+        free(graph[i]);
+    }
+    free(graph);
+}
+
 
 void init_maze(int **maze, int width, int height) {
     for (int i = 0; i < height; i++) {
@@ -48,10 +146,6 @@ int** generate_maze(int width, int height) {
     return maze;
 }
 
-void generate_entry(){
-    
-    return;
-}
 
 // Afficher le labyrinthe
 void print_maze(int **maze, int width, int height) {
@@ -219,20 +313,22 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
 int main() {
     srand(time(NULL));
     
-    int width = 150, height = 10;
+    int width = 10, height = 6;
     
     int **maze = generate_maze(width, height);
 
 
     divide(maze, 0, width, 0, height);
 
-    generate_entry();
+    Node** graph = generate_entry_and_graph(maze, width, height);
+    printf("\nGraph:\n");
+    print_graph(graph);
 
-
-
+    printf("\nMaze:\n");
     print_maze(maze, width, height);
 
     free_maze(maze, height);
+    free_graph(graph);
 
     return 0;
 }
