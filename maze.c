@@ -6,8 +6,8 @@
 #define SPACE 0
 #define ENTRY 2
 #define EXIT 3
-#define MIN_WIDTH 3
-#define MIN_HEIGHT 4
+#define DOOR 4
+
 
 typedef struct {
     int x, y;
@@ -49,7 +49,7 @@ int** generate_maze(int width, int height) {
 }
 
 void generate_entry(){
-
+    
     return;
 }
 
@@ -61,6 +61,7 @@ void print_maze(int **maze, int width, int height) {
             else if (maze[i][j] == SPACE) printf(" ");
             else if (maze[i][j] == ENTRY) printf("E");
             else if (maze[i][j] == EXIT) printf("X");
+            else if (maze[i][j] == DOOR) printf("-");
         }
         printf("\n");
     }
@@ -75,13 +76,24 @@ void free_maze(int **maze, int height) {
 
 void place_door(int **maze, int x_start, int x_end, int y_start, int y_end, int horizontal) {
     if (horizontal) {
-        // Calculer la position de la porte au milieu du mur
-        int door_position = x_start + (x_end - x_start) / 2;
-        maze[y_end][door_position] = SPACE;  // Place la porte en tant qu'espace
-    } else {
-        // Calculer la position de la porte au milieu du mur
-        int door_position = y_start + (y_end - y_start) / 2;
-        maze[door_position][x_end] = SPACE;  // Place la porte en tant qu'espace
+        int door_position;
+        if((x_end - x_start - 2) == 0){
+            printf("\n\n CACA HAPEN \n\n");
+            door_position = x_start + 1; 
+        }else{
+                door_position = x_start + 1 + rand() % (x_end - x_start - 2); 
+        }
+        maze[y_end][door_position] = DOOR;  // Place la porte en tant qu'espace
+    } 
+    else {
+                int door_position;
+        if((y_end - y_start - 2) == 0){
+            printf("\n\n CACA HAPEN \n\n");
+            door_position = y_start + 1; 
+        }else{
+                door_position = y_start + 1 + rand() % (y_end - y_start - 2); 
+        }
+        maze[door_position][x_end] = DOOR;  // Place la porte en tant qu'espace
     }
 }
 
@@ -105,21 +117,22 @@ int generateXwallCoord(int x_end, int x_start){
     return x_wall;
 }
 
+
 int checkYWall(int **maze, int x_start, int x_end, int y_wall){
-    if(maze[y_wall][x_start] == SPACE){
+    if(maze[y_wall][x_start] == DOOR){
         return 0;
     }
-    if(maze[y_wall][x_end-1] == SPACE){
+    if(maze[y_wall][x_end-1] == DOOR){
         return 0;
     }
     return 1;
 }
 
 int checkXWall(int **maze, int y_start, int y_end, int x_wall){
-    if(maze[y_start][x_wall] == SPACE){
+    if(maze[y_start][x_wall] == DOOR){
         return 0;
     }
-    if(maze[y_end-1][x_wall] == SPACE){
+    if(maze[y_end-1][x_wall] == DOOR){
         return 0;
     }
     return 1;
@@ -127,8 +140,6 @@ int checkXWall(int **maze, int y_start, int y_end, int x_wall){
 
 
 void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
-
-
     int width = x_end - x_start - 1;
     int height = y_end - y_start - 1;
     int state;
@@ -137,9 +148,9 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
         state = 1; // Ca passe
     } else if (width > 3 && height == 3) {
         state = 1; // Ca passe
-    } else if (width <= 3 && height <= 3) {
+    } else if (width <= 3 || height <= 3) {
         state = 0; // Ca - tastrophique
-    } else {
+    }else {
         state = 1; // Cas normalement ca passe inchAllah
     }
 
@@ -153,63 +164,54 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
     }
 
     int horizontal = (x_end - x_start) < (y_end - y_start); 
+    int is_square = (x_end - x_start) == (y_end - y_start);
 
-    if (horizontal) {
-
+    if (is_square || horizontal) {
         int y_wall = 0;
-        int max_attempts = 50; // plus tard changer ca
+        int max_attempts = 50;
         int attempts = 0;
 
-        do{
+        do {
             y_wall = generateYwallCoord(y_end, y_start);
-            printf("Attemps : %d \n", attempts);
+            //printf("Attempts (horizontal): %d \n", attempts);
             attempts++;
-        }while (!checkYWall(maze, x_start,x_end, y_wall) && attempts < max_attempts);
+        } while (!checkYWall(maze, x_start, x_end, y_wall) && attempts < max_attempts);
 
-        if (attempts >= max_attempts) {
+        if (attempts < max_attempts) {
+            // Division horizontale réussie
+            for (int x = x_start + 1; x < x_end; x++) {
+                maze[y_wall][x] = WALL;
+            }
+            place_door(maze, x_start, x_end, y_start, y_wall, 1);
+
+            divide(maze, x_start, x_end, y_start, y_wall + 1); 
+            divide(maze, x_start, x_end, y_wall, y_end);
             return;
         }
+    }
 
-        for (int x = x_start+1; x < x_end; x++) {
-            maze[y_wall][x] = WALL; 
-        }
-
-        place_door(maze, x_start, x_end, y_start, y_wall, 1);
-
-        printf("\n\n");
-        print_maze(maze, 15, 12);
-
-        divide(maze, x_start, x_end, y_start, y_wall); 
-        divide(maze, x_start, x_end, y_wall, y_end);
-
-    } else {
+    if (is_square || !horizontal) {
         int x_wall = 0;
-        int max_attempts = 50;  //plus tard changer ca
+        int max_attempts = 50;
         int attempts = 0;
 
         do {
             x_wall = generateXwallCoord(x_end, x_start);
-            printf("Attemps : %d \n", attempts);
+            //printf("Attempts (vertical): %d \n", attempts);
             attempts++;
         } while (!checkXWall(maze, y_start, y_end, x_wall) && attempts < max_attempts);
 
-        if (attempts >= max_attempts) {
-            return;
+        if (attempts < max_attempts) {
+            // Division verticale réussie
+            for (int y = y_start + 1; y < y_end; y++) {
+                maze[y][x_wall] = WALL;
+            }
+            place_door(maze, x_start, x_wall, y_start, y_end, 0);
+
+            divide(maze, x_start, x_wall + 1, y_start, y_end);
+            divide(maze, x_wall, x_end, y_start, y_end);
         }
-
-        for (int y = y_start+1; y < y_end; y++) {
-            maze[y][x_wall] = WALL;
-        }
-
-        place_door(maze, x_start, x_wall, y_start, y_end, 0);
-
-        printf("\n\n");
-        print_maze(maze, 15, 12);
-
-        divide(maze, x_start, x_wall, y_start, y_end);
-        divide(maze, x_wall, x_end, y_start, y_end);
     }
-
 }
 
 
@@ -217,7 +219,7 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
 int main() {
     srand(time(NULL));
     
-    int width = 15, height = 12;
+    int width = 150, height = 10;
     
     int **maze = generate_maze(width, height);
 
