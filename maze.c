@@ -68,9 +68,9 @@ void print_maze(int **maze, int width, int height) {
 
 void free_maze(int **maze, int height) {
     for (int i = 0; i < height; i++) {
-        free(maze[i]);  // Libère chaque ligne
+        free(maze[i]);
     }
-    free(maze);  // Libère le tableau de pointeurs
+    free(maze); 
 }
 
 void place_door(int **maze, int x_start, int x_end, int y_start, int y_end, int horizontal) {
@@ -105,13 +105,23 @@ int generateXwallCoord(int x_end, int x_start){
     return x_wall;
 }
 
-int checkYWall(){
-    //
+int checkYWall(int **maze, int x_start, int x_end, int y_wall){
+    if(maze[y_wall][x_start] == SPACE){
+        return 0;
+    }
+    if(maze[y_wall][x_end-1] == SPACE){
+        return 0;
+    }
     return 1;
 }
 
-int checkXWall(){
-    //
+int checkXWall(int **maze, int y_start, int y_end, int x_wall){
+    if(maze[y_start][x_wall] == SPACE){
+        return 0;
+    }
+    if(maze[y_end-1][x_wall] == SPACE){
+        return 0;
+    }
     return 1;
 }
 
@@ -147,46 +157,54 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
     if (horizontal) {
 
         int y_wall = 0;
-        int max_attempts = 50;
+        int max_attempts = 50; // plus tard changer ca
         int attempts = 0;
 
         do{
             y_wall = generateYwallCoord(y_end, y_start);
+            printf("Attemps : %d \n", attempts);
             attempts++;
-        }while (!checkYWall() && attempts < max_attempts);
+        }while (!checkYWall(maze, x_start,x_end, y_wall) && attempts < max_attempts);
 
         if (attempts >= max_attempts) {
             return;
         }
 
-        for (int x = x_start; x < x_end; x++) {
+        for (int x = x_start+1; x < x_end; x++) {
             maze[y_wall][x] = WALL; 
         }
 
         place_door(maze, x_start, x_end, y_start, y_wall, 1);
+
+        printf("\n\n");
+        print_maze(maze, 15, 12);
 
         divide(maze, x_start, x_end, y_start, y_wall); 
         divide(maze, x_start, x_end, y_wall, y_end);
 
     } else {
         int x_wall = 0;
-        int max_attempts = 50;
+        int max_attempts = 50;  //plus tard changer ca
         int attempts = 0;
 
         do {
             x_wall = generateXwallCoord(x_end, x_start);
+            printf("Attemps : %d \n", attempts);
             attempts++;
-        } while (!checkXWall() && attempts < max_attempts);
+        } while (!checkXWall(maze, y_start, y_end, x_wall) && attempts < max_attempts);
 
         if (attempts >= max_attempts) {
             return;
         }
 
-        for (int y = y_start; y < y_end; y++) {
+        for (int y = y_start+1; y < y_end; y++) {
             maze[y][x_wall] = WALL;
         }
 
         place_door(maze, x_start, x_wall, y_start, y_end, 0);
+
+        printf("\n\n");
+        print_maze(maze, 15, 12);
 
         divide(maze, x_start, x_wall, y_start, y_end);
         divide(maze, x_wall, x_end, y_start, y_end);
@@ -199,7 +217,7 @@ void divide(int **maze, int x_start, int x_end, int y_start, int y_end) {
 int main() {
     srand(time(NULL));
     
-    int width = 21, height = 21;
+    int width = 15, height = 12;
     
     int **maze = generate_maze(width, height);
 
